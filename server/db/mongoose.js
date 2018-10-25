@@ -5,6 +5,8 @@ const mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
 
 // mongoose is managing queue of events to process, so we don't need to be bothered with it
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/TodoApp');
+mongoose.connect('mongodb://mlab_heroku:Kq3EDVh5CLWwe3Z@ds021915.mlab.com:21915/angtest');
+// mongoose.connect('mongodb://127.0.0.1:27017/TodoApp');
+
 
 module.exports = { mongoose };
