@@ -161,3 +161,154 @@ describe('GET /todos:id', () => {
     
   })
 })
+
+describe('DELETE /todos/:id', () => {
+  it('should delete first item', (done) => {
+
+    const id = todos[0]._id.toHexString();
+    const title = todos[0].title;
+
+    request(app)
+      .delete('/todos/'+ id)
+      .expect(200)
+      .expect((doc) => {
+        expect(doc.body.todo.title).toBe(title)
+      })
+      .end((err) => {
+
+        if(err){
+          done(err);
+          return;
+        }
+
+        // first method
+        /* TodoModel
+          .find()
+          .then((todos) => {
+            
+            expect(todos.length).toBe(2);
+            done();
+          })
+          .catch((e) => {
+            done(e);
+          }) */
+
+          // other method
+          TodoModel
+            .findById(id)
+            .then((todo) => {
+              expect(todo).toNotExist();
+              done();
+            })
+            .catch((e) => done(e))
+
+      })
+  })
+
+  it('should return 404 if item doesn\'t exist', (done) => {
+    
+    const id = new ObjectID()
+
+    request(app)
+      .delete('/todos/'+id)
+      .expect(404)
+      .end(done)
+    
+  })
+
+  it('should return 400 if id is wrong', (done) => {
+
+    const id = 'xxx';
+
+    request(app)
+      .delete('/todos/'+id)
+      .expect(400)
+      .end(done);
+
+  })
+  
+})
+
+describe('PATCH /todos/id', () => {
+
+  it('should update choosed with ID item with details privided inr request JSON', (done) => {
+
+    const id = todos[0]._id.toHexString();
+    const body = { 'title': 'item patched', 'completed': true }
+    const expectedTitle = 'item patched';
+
+    request(app)
+      .patch('/todos/'+id)
+      .send(body)
+      .expect(200)
+      // check what is comming back after request is done
+      .expect((res) => {
+        expect(res.body.newItem.title).toBe(expectedTitle);
+        expect(res.body.newItem.completed).toBe(body.completed);
+        expect(res.body.newItem.completedAt).toNotBe(null);
+      })
+      .end((err) => {
+        if(err){
+          done(err);
+          return;
+        }
+        // check whatchanges done directly in the db
+        TodoModel.findById(id)
+          .then((newItem) => {
+            // check title
+            expect(newItem.title).toBe(expectedTitle);
+            // check completed
+            expect(newItem.completed).toBe(true);
+            // check if completion time is added
+            expect(newItem.completedAt).toNotBe(null);
+            done();
+          })
+          .catch((err) => {
+            done(err)
+          })
+        
+      });
+
+  })
+
+  it('should not update choosed with ID item with details privided as completed: false', (done) => {
+
+    const id = todos[0]._id.toHexString();
+    const body = { 'title': 'item patched', 'completed': false }
+    const expectedTitle = 'item patched';
+
+    request(app)
+      .patch('/todos/'+id)
+      .send(body)
+      .expect(200)
+      // check what is comming back after request is done
+      .expect((res) => {
+        expect(res.body.newItem.title).toBe(expectedTitle);
+        expect(res.body.newItem.completed).toBe(body.completed);
+        expect(res.body.newItem.completedAt).toBe(null);
+      })
+      .end((err) => {
+        if(err){
+          done(err);
+          return;
+        }
+        // check whatchanges done directly in the db
+        TodoModel.findById(id)
+          .then((newItem) => {
+            // check title
+            expect(newItem.title).toBe(expectedTitle);
+            // check completed
+            expect(newItem.completed).toBe(false);
+            // check if completion time is added
+            expect(newItem.completedAt).toBe(null);
+            done();
+          })
+          .catch((err) => {
+            done(err)
+          })
+        
+      });
+
+  })
+  
+})
