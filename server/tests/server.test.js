@@ -7,7 +7,7 @@ const { app } = require('./../server');
 const { TodoModel } = require('./../models/todo');
 const {ObjectID} = require('mongodb');
 // const { mongoose } = require('./../db/mongoose');
-// const { UserModel } = require('./models/user')
+const { UserModel } = require('./../models/user')
 
 /**
  * for GET testing we need to crete fake todos array which will seed db in beforeEach method
@@ -39,7 +39,11 @@ beforeEach((done) => {
     .then(() => {
       return TodoModel.insertMany(todos)
     })
-    .then(() => done())
+    .then(() => {
+      UserModel
+      .remove({})
+      .then(done())
+    })
 });
 
 describe('POST /todos', () => {
@@ -311,4 +315,32 @@ describe('PATCH /todos/id', () => {
 
   })
   
+})
+
+describe('POST /users/', () => {
+  it('should add user with provided email and ID', (done) => {
+
+    const body = { "email": "user@email.com", "password": "asdasd" }
+
+    request(app)
+      .post('/users')
+      .send(body)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.user.email).toBe(body.email);
+        
+      })
+      .end((err) => {
+        if(err){
+          done(err);
+          return;
+        }
+        UserModel.find({email: body.email})
+          .then((users) => {
+            expect(users[0].email).toBe(body.email);
+            done();
+          })
+      })
+    
+  })
 })

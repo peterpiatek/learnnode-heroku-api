@@ -7,7 +7,7 @@ const _ = require('lodash');
 
 const { mongoose } = require('./db/mongoose');
 
-// const { UserModel } = require('./models/user')
+const { UserModel } = require('./models/user')
 const { TodoModel } = require('./models/todo')
 
 const app = express();
@@ -15,7 +15,7 @@ const app = express();
 /**
  * middleware for getting body data
  * is getting JSON data and converting to an object which will be attached to app.post req
- * return value from bodyparser.json is a function wchich will be given to the express
+ * return value from bodyparser.json() is a function wchich will be given to the express
  */
 app.use(bodyParser.json());
 
@@ -124,8 +124,27 @@ app.patch('/todos/:id', (req, res) => {
     })
   
 })
- 
 
+app.post('/users', (req, res) => {
+
+  const body = _.pick(req.body, ['email', 'password']);
+  
+  const newUser = new UserModel(body);
+
+  newUser.save()
+    .then(() => {
+      // return as we're expecting chaining promise
+      // we use method of an object we work on so we returned by value will be exactly the same as newUser (we just pass a reference)
+      return newUser.generateAuthToken();
+    })
+    .then((token) => {
+      // we use jwt to manage tokens so we need to create new header: x-auth
+      res.header('x-auth', token).send(newUser);
+    })
+    .catch((err) => {
+      res.status(400).send(err);
+    })
+})
 
 
 app.listen(process.env.PORT, () => {
