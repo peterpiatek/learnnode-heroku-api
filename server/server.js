@@ -9,6 +9,7 @@ const { mongoose } = require('./db/mongoose');
 
 const { UserModel } = require('./models/user')
 const { TodoModel } = require('./models/todo')
+const { authenticate } = require('./../server/middleware/authenticate')
 
 const app = express();
 
@@ -139,13 +140,19 @@ app.post('/users', (req, res) => {
     })
     .then((token) => {
       // we use jwt to manage tokens so we need to create new header: x-auth
-      res.header('x-auth', token).send(newUser);
+      res.header('x-auth', token).send({user: newUser});
     })
     .catch((err) => {
       res.status(400).send(err);
     })
 })
 
+/**
+ * getting user by token, veryfying token
+ */
+app.get('/users/me', authenticate, (req, res) => {
+  res.send(req.user);
+})
 
 app.listen(process.env.PORT, () => {
   console.log('Started on port: ', process.env.PORT);

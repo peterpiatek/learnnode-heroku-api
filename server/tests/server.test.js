@@ -2,49 +2,20 @@
 
 const expect = require('expect');
 const request = require('supertest');
+const {ObjectID} = require('mongodb');
 
 const { app } = require('./../server');
 const { TodoModel } = require('./../models/todo');
-const {ObjectID} = require('mongodb');
-// const { mongoose } = require('./../db/mongoose');
-const { UserModel } = require('./../models/user')
+const { UserModel } = require('./../models/user');
+const { todos, seedTodos, users, seedUsers } = require('./seed/seed');
 
-/**
- * for GET testing we need to crete fake todos array which will seed db in beforeEach method
- */
-
-const todos = [
-  { 
-    title: 'First test todo', 
-    _id: new ObjectID()
-  },
-  { 
-    title: 'Second test todo',
-    _id: new ObjectID()
-  },
-  { 
-    title: 'third test todo',
-    _id: new ObjectID()
-  }
-];
 
 /**
  * as we are using assumption todos.length to be 1 we must prepare testing environment for this assumption
  */
 
-beforeEach((done) => {
-  // whiping up all todos from db
-  TodoModel
-    .remove({})
-    .then(() => {
-      return TodoModel.insertMany(todos)
-    })
-    .then(() => {
-      UserModel
-      .remove({})
-      .then(done())
-    })
-});
+beforeEach(seedUsers);
+beforeEach(seedTodos);
 
 describe('POST /todos', () => {
   it('should create a new todo', (done) => {

@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
   email: {
@@ -33,6 +34,58 @@ const UserSchema = new mongoose.Schema({
   }]
 });
 
+UserSchema.statics.findByToken = function (token){
+
+  const User = this;
+  let decoded;
+
+  // checking if token is not manipulated
+  try {
+    // jwt is returning { _id, access, iat } / iat: timestamp of token creation
+    decoded = jwt.verify(token, 'secretval');
+  } catch (error) {
+    return Promise.reject('token is corrupted');  
+  }
+
+  // success case: if token is correct:
+  return User.findOne({
+    '_id': decoded._id,
+    'tokens.token': token,
+    'tokens.access': 'auth'
+  })
+  
+}
+
+// mongoose middleware (for built in methods)
+// it's doing pre of post modifications of async code (like save, remove, findOne)
+
+UserSchema.pre('save', function(next) {
+
+  const user = this;
+  // to not let middleware run in every query we need to use method to check if password is changed to use this middleware
+  if(user.isModified('password')){
+    bcrypt.genSalt(1, (err, salt) => {
+      if(err){
+        next(err);
+      } else {
+        bcrypt.hash(user.password, salt, (err, hash) => {
+          if(err){
+            next(err)
+          } else {
+            user.password = hash;
+            next();
+          }
+        })
+      }
+    })
+  } else {
+    next();
+  }
+
+  // next();
+})
+
+
 // overriding below's method to update how mongoose handle content returned in response obj
 UserSchema.methods.toJSON = function (){
   const user = this;
@@ -61,6 +114,7 @@ UserSchema.methods.generateAuthToken = function () {
     return token;
   })
 }
+
 
 var User = mongoose.model('User', UserSchema)
 
