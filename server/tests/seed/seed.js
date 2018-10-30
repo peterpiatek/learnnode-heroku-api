@@ -1,0 +1,82 @@
+/**
+ * for GET testing we need to create fake todos array which will seed db in beforeEach method
+ */
+
+const {ObjectID} = require('mongodb');
+const {UserModel} = require('./../../models/user');
+const {TodoModel} = require('./../../models/todo');
+const jwt = require('jsonwebtoken');
+
+
+const todos = [
+  {
+    title: 'First test todo',
+    _id: new ObjectID()
+  },
+  {
+    title: 'Second test todo',
+    _id: new ObjectID()
+  },
+  {
+    title: 'third test todo',
+    _id: new ObjectID()
+  }
+];
+
+const userOneId = new ObjectID();
+const userTwoId = new ObjectID();
+
+const users = [
+  {
+    _id: userOneId,
+    email: 'peter.piatek.gm@gmail.com',
+    password: '123asd#',
+    tokens: [
+      { 
+        access: 'auth', 
+        token: jwt.sign({_id: userOneId, access: 'auth'}, 'secretval').toString()
+      }
+    ]
+  },
+  {
+    _id: userTwoId,
+    email: 'kamila.piatek@gmail.com',
+    password: '321dsa#',
+    tokens: [
+      {
+        access: 'auth',
+        token: jwt.sign({_id: userTwoId, access: 'auth'}, 'secretval').toString()
+      }
+    ]
+  }
+]
+
+const seedTodos = (done) => {
+  // whiping up all todos from db
+  TodoModel
+    .remove({})
+    .then(() => {
+      return TodoModel.insertMany(todos)
+    })
+    .then(() => done());
+}
+
+const seedUsers = (done) =>{
+  UserModel
+    .remove({})
+    .then(() => {
+      const userOne = new UserModel(users[0]).save();
+      const userTwo = new UserModel(users[1]).save();
+
+      return Promise.all([userOne, userTwo]);
+    })
+    .then(() => done());
+}
+
+module.exports = {
+  todos,
+  seedTodos,
+  users,
+  seedUsers
+}
+
