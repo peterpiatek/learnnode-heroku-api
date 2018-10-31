@@ -3,6 +3,7 @@
 const expect = require('expect');
 const request = require('supertest');
 const {ObjectID} = require('mongodb');
+const bcrypt = require('bcryptjs');
 
 const { app } = require('./../server');
 const { TodoModel } = require('./../models/todo');
@@ -298,8 +299,9 @@ describe('POST /users/', () => {
       .send(body)
       .expect(200)
       .expect((res) => {
+        expect(res.headers['x-auth']).toExist();
+        expect(res.body.user._id).toExist();
         expect(res.body.user.email).toBe(body.email);
-        
       })
       .end((err) => {
         if(err){
@@ -309,9 +311,72 @@ describe('POST /users/', () => {
         UserModel.find({email: body.email})
           .then((users) => {
             expect(users[0].email).toBe(body.email);
+            
+            // checking if hashing is done properly
+            const hashedPassword = users[0].password;
+            bcrypt.compare(body.password, hashedPassword).then((matchResult) => {
+              expect(matchResult).toBe(true);
+            });
+
             done();
           })
       })
+  })
+
+  it('should not create user if email or password is not valid', (done) => {
+
+    const body = { "email": "PeterPiatek.gm", "password": "asd" }
+
+    request(app)
+      .post('/users')
+      .send(body)
+      .expect(400)
+      .expect((res) => {
+        expect(res.body.message).toBe('User validation failed');
+      })
+      .end((err, res) => {
+        if(err){
+          done(err);
+          return;
+        }
+
+        UserModel.find({email: body.email}).then((users) => {
+          expect(users[0]).toNotExist();
+          done();
+        })
+        
+      });
     
   })
+  
+})
+
+describe('GET /users/me', () => {
+  it('should return user if authenticated', (done) => {
+
+    const token = users[0].tokens[0].token;
+
+    request(app)
+      .get('/users/me')
+      .set('x-auth', token)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body._id).toBe(users[0]._id.toHexString());
+        expect(res.body.email).toBe(users[0].email);
+      })
+      .end(done);
+    
+  });
+  it('should return 401 if not authenticated', (done) => {
+
+    request(app)
+      .get('/users/me')
+      .expect(401)
+      .expect((res) => {
+        expect(res.body).toEqual({})
+      })
+      .end(done);
+
+  })
+
 })
