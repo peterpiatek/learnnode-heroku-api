@@ -4,9 +4,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const {ObjectID} = require('mongodb');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs')
 
 const { mongoose } = require('./db/mongoose');
-
 const { UserModel } = require('./models/user')
 const { TodoModel } = require('./models/todo')
 const { authenticate } = require('./../server/middleware/authenticate')
@@ -20,9 +20,10 @@ const app = express();
  */
 app.use(bodyParser.json());
 
-app.post('/todos', (req, res) => {
+app.post('/todos', authenticate, (req, res) => {
   const newTodo = new TodoModel({
-    title: req.body.title
+    title: req.body.title,
+    _creator: req.user._id
   })
   newTodo.save().then((doc) => {
     res.send(doc);
@@ -32,9 +33,11 @@ app.post('/todos', (req, res) => {
   })
 })
 
-app.get('/todos', (req, res) => {
+app.get('/todos', authenticate, (req, res) => {
   TodoModel
-    .find()
+    .find({
+      _creator: req.user._id
+    })
     // sending todos in object in case we want to add some more metadata to data array
     .then((todos) => res.send({todos}))
 }, (err) => {
@@ -139,6 +142,7 @@ app.post('/users', (req, res) => {
       return newUser.generateAuthToken();
     })
     .then((token) => {
+      // console.log(token);
       // we use jwt to manage tokens so we need to create new header: x-auth
       res.header('x-auth', token).send({user: newUser});
     })
@@ -146,6 +150,39 @@ app.post('/users', (req, res) => {
       res.status(400).send(err);
     })
 })
+
+// logging in
+
+app.post('/users/login', (req, res) => {
+
+  const body = _.pick(req.body, ['email', 'password']);
+
+  UserModel.findByCredentials(body)
+    .then((user) => {
+      return user.generateAuthToken().then((token) => {
+        res.header('x-auth', token).send({user});
+      })
+    })
+    .catch((err) => {
+      res.status(400).send(err);
+    })
+  
+})
+
+// Logging out
+
+app.delete('/users/me/token', authenticate, (req, res) => {
+
+  req.user.removeToken(req.token)
+    .then(() => {
+      res.status(200).send();
+    })
+    .catch(err => {
+      res.status(400).send();
+    })
+  
+})
+
 
 /**
  * getting user by token, veryfying token

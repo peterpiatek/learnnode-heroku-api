@@ -34,6 +34,25 @@ const UserSchema = new mongoose.Schema({
   }]
 });
 
+UserSchema.statics.findByCredentials = function (body){
+  
+  return this.findOne({email: body.email})
+    .then((user) => {
+      if(!user){
+        return Promise.reject('Unable to find user');
+      } else {
+        return bcrypt.compare(body.password, user.password)
+          .then((matchResult) => {
+            if(matchResult){
+              return user;
+            } else {
+              return Promise.reject('incorrect password')
+            }
+          })
+      }
+    })
+}
+
 UserSchema.statics.findByToken = function (token){
 
   const User = this;
@@ -113,6 +132,17 @@ UserSchema.methods.generateAuthToken = function () {
   return user.save().then(() => {
     return token;
   })
+}
+
+UserSchema.methods.removeToken = function (token){
+  const user = this;
+
+  return user.update({
+    $pull: {
+      tokens: {token}
+    }
+  })
+  
 }
 
 

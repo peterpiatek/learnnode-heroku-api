@@ -1,0 +1,9 @@
+
+
+*** s8 e94
+- adding seed files (tests/seed/seed.js) for testing, moving todos and users and functions for beforeEach to newly created file
+- adding push /users/me, push/users tests
+
+
+*** s8 e95
+- adding logging in method

@@ -320,10 +320,11 @@ describe('POST /users/', () => {
 
             done();
           })
+          .catch(err => done(err))
       })
   })
 
-  it('should not create user if email or password is not valid', (done) => {
+  it('should NOT create user if email or password is not valid', (done) => {
 
     const body = { "email": "PeterPiatek.gm", "password": "asd" }
 
@@ -339,7 +340,6 @@ describe('POST /users/', () => {
           done(err);
           return;
         }
-
         UserModel.find({email: body.email}).then((users) => {
           expect(users[0]).toNotExist();
           done();
@@ -379,4 +379,101 @@ describe('GET /users/me', () => {
 
   })
 
+})
+
+describe('POST /users/login', () => {
+  it('should log in user and return x-auth token', (done) => {
+
+    const dbUserEmail = users[0].email;
+    const dbUserPassword = users[0].password;
+    const body = { email: dbUserEmail, password: dbUserPassword }
+
+    request(app)
+      .post('/users/login')
+      .send(body)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.user.email).toBe(dbUserEmail);
+        expect(res.headers['x-auth']).toExist();
+      })
+      .end((err, res) => {
+        if(err){
+          done(err);
+          return;
+        }
+
+        // checking if token generated for the user and sent in response is the same as the one written to db
+        UserModel.findById(users[0]._id)
+          .then((user) => {
+            // tokens[1] 1- because there is one default token for that user, newly generated token is as second object in the tokens array
+            expect(user.tokens[1]).toInclude({
+              'access': 'auth',
+              'token': res.header['x-auth']
+            });
+            done();
+          })
+          .catch((err) => {
+            done(err);
+          })
+        
+      });
+    
+  })
+
+  it('should reject invalid login', (done) => {
+
+    const dbUserEmail = users[0].email;
+    const dbUserPassword = 'xxx';
+    const body = { email: dbUserEmail, password: dbUserPassword }
+
+    request(app)
+      .post('/users/login')
+      .send(body)
+      .expect(400)
+      .expect((res) => {
+        expect(res.body).toEqual({});
+        expect(res.headers['x-auth']).toNotExist();
+      })
+      .end((err, res) => {
+        if(err){
+          done(err);
+          return;
+        }
+
+        UserModel.findById(users[0]._id)
+          .then((user) => {
+            expect(user.tokens.length).toBe(1);
+            done();
+          })
+          .catch((err) => {
+            done(err);
+          })
+        
+      });
+  })
+})
+
+describe('DELETE /users/me/token', () => {
+  it('should delete user token', (done) => {
+
+    const token = users[0].tokens[0].token;
+    const id = users[0]._id;
+
+    request(app)
+      .delete('/users/me/token')
+      .set({'x-auth': token})
+      .expect(200)
+      .end((err, res) => {
+        if(err){
+          done(err);
+          return;
+        }
+
+        UserModel.findById(id)
+          .then((user) => {
+            expect(user.tokens.length).toBe(0);
+            done();
+          })
+      })
+  })
 })
