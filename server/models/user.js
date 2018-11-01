@@ -61,7 +61,7 @@ UserSchema.statics.findByToken = function (token){
   // checking if token is not manipulated
   try {
     // jwt is returning { _id, access, iat } / iat: timestamp of token creation
-    decoded = jwt.verify(token, 'secretval');
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
     return Promise.reject('token is corrupted');  
   }
@@ -122,7 +122,7 @@ UserSchema.methods.generateAuthToken = function () {
   const token = jwt.sign({
     _id: user._id.toHexString(),
     access
-  }, 'secretval').toString();
+  }, process.env.JWT_SECRET).toString();
 
   // because of some inconsistences between mongodb versions instead of using push it's better to use concat method 
   user.tokens = user.tokens.concat([{ access, token }]);

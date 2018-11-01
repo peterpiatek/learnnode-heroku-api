@@ -110,7 +110,9 @@ app.patch('/todos/:id', authenticate, (req, res) => {
     return;
   }
 
-  // lodash to check if JSON from req is boolean, if yes and if true - setting date of completion to existing body object
+  // lodash to check if JSON from req is boolean, 
+  // if yes and if completed: true - setting date of completion to existing body object
+  // if false: setting completedAt to null 
   if(_.isBoolean(body.completed) && body.completed === true){
     body.completedAt = new Date().getTime();
   } else {
@@ -119,7 +121,12 @@ app.patch('/todos/:id', authenticate, (req, res) => {
   }
 
   // updating an item
-  TodoModel.findOneAndUpdate(id, {$set: body}, {new: true})
+  // $set - mongodb marker to update db document
+  // new: true - to return new doc instead of an old one
+  TodoModel.findOneAndUpdate({
+  _id: id,
+  _creator: req.user._id
+  }, {$set: body}, {new: true})
     // if item existed and it's updated or if not existed:
     .then((newItem) => {
       if(!newItem){
@@ -179,7 +186,6 @@ app.post('/users/login', (req, res) => {
 // Logging out
 
 app.delete('/users/me/token', authenticate, (req, res) => {
-
   req.user.removeToken(req.token)
     .then(() => {
       res.status(200).send();
@@ -187,7 +193,6 @@ app.delete('/users/me/token', authenticate, (req, res) => {
     .catch(err => {
       res.status(400).send();
     })
-  
 })
 
 

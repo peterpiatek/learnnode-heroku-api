@@ -201,6 +201,30 @@ describe('DELETE /todos/:id', () => {
       })
   })
 
+  it('should NOT delete item if creator is not logged in user', (done) => {
+
+    const id = todos[1]._id.toHexString();
+
+    request(app)
+      .delete('/todos/'+ id)
+      .set('x-auth', users[0].tokens[0].token)
+      .expect(404)
+      .end((err) => {
+        if(err){
+          done(err);
+          return;
+        }
+          // check db if still exist
+          TodoModel
+            .findById(id)
+            .then((todo) => {
+              expect(todo).toExist();
+              done();
+            })
+            .catch((e) => done(e))
+      })
+  })
+
   it('should return 404 if item doesn\'t exist', (done) => {
     
     const id = new ObjectID()
@@ -229,7 +253,7 @@ describe('DELETE /todos/:id', () => {
 
 describe('PATCH /todos/id', () => {
 
-  it('should update choosed with ID item with details privided inr request JSON', (done) => {
+  it('should update item', (done) => {
 
     const id = todos[0]._id.toHexString();
     const body = { 'title': 'item patched', 'completed': true }
@@ -237,6 +261,7 @@ describe('PATCH /todos/id', () => {
 
     request(app)
       .patch('/todos/'+id)
+      .set('x-auth', users[0].tokens[0].token)
       .send(body)
       .expect(200)
       // check what is comming back after request is done
@@ -269,22 +294,18 @@ describe('PATCH /todos/id', () => {
 
   })
 
-  it('should not update choosed with ID item with details privided as completed: false', (done) => {
+  it('should NOT update item if creator is not logged in user', (done) => {
 
-    const id = todos[0]._id.toHexString();
-    const body = { 'title': 'item patched', 'completed': false }
+    const id = todos[1]._id.toHexString();
+    const body = { 'title': 'item patched', 'completed': true }
     const expectedTitle = 'item patched';
 
     request(app)
       .patch('/todos/'+id)
+      .set('x-auth', users[0].tokens[0].token)
       .send(body)
-      .expect(200)
+      .expect(404)
       // check what is comming back after request is done
-      .expect((res) => {
-        expect(res.body.newItem.title).toBe(expectedTitle);
-        expect(res.body.newItem.completed).toBe(body.completed);
-        expect(res.body.newItem.completedAt).toBe(null);
-      })
       .end((err) => {
         if(err){
           done(err);
@@ -294,7 +315,7 @@ describe('PATCH /todos/id', () => {
         TodoModel.findById(id)
           .then((newItem) => {
             // check title
-            expect(newItem.title).toBe(expectedTitle);
+            expect(newItem.title).toNotBe(expectedTitle);
             // check completed
             expect(newItem.completed).toBe(false);
             // check if completion time is added
