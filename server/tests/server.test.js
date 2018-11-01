@@ -193,7 +193,7 @@ describe('DELETE /todos/:id', () => {
           TodoModel
             .findById(id)
             .then((todo) => {
-              expect(todo).toNotExist();
+              expect(todo).toBeFalsy();
               done();
             })
             .catch((e) => done(e))
@@ -218,7 +218,7 @@ describe('DELETE /todos/:id', () => {
           TodoModel
             .findById(id)
             .then((todo) => {
-              expect(todo).toExist();
+              expect(todo).toBeTruthy();
               done();
             })
             .catch((e) => done(e))
@@ -268,7 +268,7 @@ describe('PATCH /todos/id', () => {
       .expect((res) => {
         expect(res.body.newItem.title).toBe(expectedTitle);
         expect(res.body.newItem.completed).toBe(body.completed);
-        expect(res.body.newItem.completedAt).toNotBe(null);
+        expect(res.body.newItem.completedAt).not.toBe(null);
       })
       .end((err) => {
         if(err){
@@ -283,7 +283,7 @@ describe('PATCH /todos/id', () => {
             // check completed
             expect(newItem.completed).toBe(true);
             // check if completion time is added
-            expect(newItem.completedAt).toNotBe(null);
+            expect(newItem.completedAt).not.toBe(null);
             done();
           })
           .catch((err) => {
@@ -315,7 +315,7 @@ describe('PATCH /todos/id', () => {
         TodoModel.findById(id)
           .then((newItem) => {
             // check title
-            expect(newItem.title).toNotBe(expectedTitle);
+            expect(newItem.title).not.toBe(expectedTitle);
             // check completed
             expect(newItem.completed).toBe(false);
             // check if completion time is added
@@ -342,8 +342,8 @@ describe('POST /users/', () => {
       .send(body)
       .expect(200)
       .expect((res) => {
-        expect(res.headers['x-auth']).toExist();
-        expect(res.body.user._id).toExist();
+        expect(res.headers['x-auth']).toBeTruthy();
+        expect(res.body.user._id).toBeTruthy();
         expect(res.body.user.email).toBe(body.email);
       })
       .end((err) => {
@@ -384,7 +384,7 @@ describe('POST /users/', () => {
           return;
         }
         UserModel.find({email: body.email}).then((users) => {
-          expect(users[0]).toNotExist();
+          expect(users[0]).toBeFalsy();
           done();
         })
         
@@ -437,7 +437,7 @@ describe('POST /users/login', () => {
       .expect(200)
       .expect((res) => {
         expect(res.body.user.email).toBe(dbUserEmail);
-        expect(res.headers['x-auth']).toExist();
+        expect(res.headers['x-auth']).toBeTruthy();
       })
       .end((err, res) => {
         if(err){
@@ -449,7 +449,7 @@ describe('POST /users/login', () => {
         UserModel.findById(users[0]._id)
           .then((user) => {
             // tokens[1] 1- because there is one default token for that user, newly generated token is as second object in the tokens array
-            expect(user.tokens[1]).toInclude({
+            expect(user.toObject().tokens[1]).toMatchObject({
               'access': 'auth',
               'token': res.header['x-auth']
             });
@@ -475,7 +475,7 @@ describe('POST /users/login', () => {
       .expect(400)
       .expect((res) => {
         expect(res.body).toEqual({});
-        expect(res.headers['x-auth']).toNotExist();
+        expect(res.headers['x-auth']).toBeFalsy();
       })
       .end((err, res) => {
         if(err){
@@ -503,7 +503,7 @@ describe('DELETE /users/me/token', () => {
     const id = users[0]._id;
 
     request(app)
-      .delete('/users/me/token')
+      .delete('/users/logout')
       .set({'x-auth': token})
       .expect(200)
       .end((err, res) => {
