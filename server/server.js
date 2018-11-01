@@ -44,7 +44,7 @@ app.get('/todos', authenticate, (req, res) => {
   res.status(400).send(err);
 })
 
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id', authenticate, (req, res) => {
   const id = req.params.id;
 
   if(!ObjectID.isValid(id)){
@@ -52,7 +52,11 @@ app.get('/todos/:id', (req, res) => {
     return;
 
   } else {
-    TodoModel.findById(id)
+    // after we use authentication is good to narrow results to just those with _creator value same as authenticated user
+    TodoModel.findOne({
+      _id: id,
+      _creator: req.user._id
+    })
       .then((todo) => {
         if(!todo){
           res.status(404).send();
@@ -66,7 +70,7 @@ app.get('/todos/:id', (req, res) => {
   }
 })
 
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', authenticate, (req, res) => {
   
   const id = req.params.id;
 
@@ -76,7 +80,10 @@ app.delete('/todos/:id', (req, res) => {
   }
 
   TodoModel
-  .findByIdAndRemove(id)
+  .findOneAndRemove({
+    _id: id,
+    _creator: req.user._id
+  })
     .then((todo) => {
       if(!todo){
         res.status(404).send()  
@@ -90,7 +97,7 @@ app.delete('/todos/:id', (req, res) => {
 
 })
 
-app.patch('/todos/:id', (req, res) => {
+app.patch('/todos/:id', authenticate, (req, res) => {
 
   // object to be used to update a db doc
   // lodash used to check if only restricted params from the req body are passed

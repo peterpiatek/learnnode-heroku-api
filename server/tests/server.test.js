@@ -24,6 +24,7 @@ describe('POST /todos', () => {
 
     request(app)
       .post('/todos')
+      .set('x-auth', users[0].tokens[0].token)
       .send({ title })
       .expect(200)
       .expect((res) => {
@@ -62,6 +63,7 @@ describe('POST /todos', () => {
 
     request(app)
       .post('/todos')
+      .set('x-auth', users[0].tokens[0].token)
       .send({title})
       .expect(400)
       .expect((err) => {
@@ -91,9 +93,10 @@ describe('POST /todos', () => {
 
     request(app)
       .get('/todos')
+      .set('x-auth', users[0].tokens[0].token)
       .expect(200)
       .expect((res) => {
-        expect(res.body.todos.length).toBe(3);
+        expect(res.body.todos.length).toBe(1); // only 1 todo created for first user
       })
       .end(done);
     
@@ -109,6 +112,7 @@ describe('GET /todos:id', () => {
 
     request(app)
       .get('/todos/' + id.toHexString())
+      .set('x-auth', users[0].tokens[0].token)
       .expect(200)
       .expect((doc) => {
         expect(doc.body.todo.title).toBe(expectedTitle);
@@ -117,10 +121,24 @@ describe('GET /todos:id', () => {
     
   })
 
+  it('should NOT get todo for user who did not create task', (done) => {
+
+    const id = todos[1]._id;
+    const expectedTitle = todos[0].title;
+
+    request(app)
+      .get('/todos/' + id.toHexString())
+      .set('x-auth', users[0].tokens[0].token)
+      .expect(404)
+      .end(done);
+    
+  })
+
   it('should should return status 400 for incorrect id', (done) => {
 
     request(app)
       .get('/todos/xxx')
+      .set('x-auth', users[0].tokens[0].token)
       .expect(400)
       .end(done);
     
@@ -132,6 +150,7 @@ describe('GET /todos:id', () => {
 
     request(app)
       .get('/todos/' + id)
+      .set('x-auth', users[0].tokens[0].token)
       .expect(404)
       .end(done);
     
@@ -146,6 +165,7 @@ describe('DELETE /todos/:id', () => {
 
     request(app)
       .delete('/todos/'+ id)
+      .set('x-auth', users[0].tokens[0].token)
       .expect(200)
       .expect((doc) => {
         expect(doc.body.todo.title).toBe(title)
@@ -187,6 +207,7 @@ describe('DELETE /todos/:id', () => {
 
     request(app)
       .delete('/todos/'+id)
+      .set('x-auth', users[0].tokens[0].token)
       .expect(404)
       .end(done)
     
@@ -198,6 +219,7 @@ describe('DELETE /todos/:id', () => {
 
     request(app)
       .delete('/todos/'+id)
+      .set('x-auth', users[0].tokens[0].token)
       .expect(400)
       .end(done);
 
