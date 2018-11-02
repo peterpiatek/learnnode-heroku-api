@@ -143,56 +143,47 @@ app.patch('/todos/:id', authenticate, (req, res) => {
   
 })
 
-app.post('/users', (req, res) => {
+app.post('/users', async (req, res) => {
 
   const body = _.pick(req.body, ['email', 'password']);
-  
   const newUser = new UserModel(body);
 
-  newUser.save()
-    .then(() => {
-      // return as we're expecting chaining promise
-      // we use method of an object we work on so we returned by value will be exactly the same as newUser (we just pass a reference)
-      return newUser.generateAuthToken();
-    })
-    .then((token) => {
-      // console.log(token);
-      // we use jwt to manage tokens so we need to create new header: x-auth
-      res.header('x-auth', token).send({user: newUser});
-    })
-    .catch((err) => {
-      res.status(400).send(err);
-    })
+  try {
+    await newUser.save()
+    const token = await newUser.generateAuthToken();
+    res.header('x-auth', token).send({user: newUser});
+
+  } catch (err) {
+    res.status(400).send(err);
+  }
+    
 })
 
 // logging in
 
-app.post('/users/login', (req, res) => {
+app.post('/users/login', async (req, res) => {
 
   const body = _.pick(req.body, ['email', 'password']);
 
-  UserModel.findByCredentials(body)
-    .then((user) => {
-      return user.generateAuthToken().then((token) => {
-        res.header('x-auth', token).send({user});
-      })
-    })
-    .catch((err) => {
-      res.status(400).send(err);
-    })
-  
+  try {
+    const user = await UserModel.findByCredentials(body);
+    const token = await user.generateAuthToken();
+    res.header('x-auth', token).send({user});
+
+  } catch (err) {
+    res.status(400).send(err);
+  }  
 })
 
 // Logging out
 
-app.delete('/users/logout', authenticate, (req, res) => {
-  req.user.removeToken(req.token)
-    .then(() => {
-      res.status(200).send();
-    })
-    .catch(err => {
-      res.status(400).send();
-    })
+app.delete('/users/logout', authenticate, async (req, res) => {
+  try {
+    await req.user.removeToken(req.token);
+    res.status(200).send();
+  } catch (error) {
+    res.status(400).send();
+  }
 })
 
 
